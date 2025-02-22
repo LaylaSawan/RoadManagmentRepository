@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pothole Detection Video</title>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1172.0.min.js"></script>
+</head>
+<body>
+    <h1>Pothole Detection Video</h1>
+    <video id="videoPlayer" width="640" height="480" controls>
+        Your browser does not support the video tag.
+    </video>
+    <h2>Road Damage Data</h2>
+    <pre id="jsonData">Loading...</pre>
+    <p id="errorMessage" style="color: red;"></p>
+
+    <script>
+        // AWS Configuration
+        AWS.config.update({
+            accessKeyId: "AKIATSXH5I6FDHG2HC5F",
+            secretAccessKey: "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",
+            region: "us-east-2"
+        });
+
+        var s3 = new AWS.S3();
+        var bucketName = "gettings3bucketimages";
+
+        function getLatestFiles() {
+            var params = { Bucket: bucketName };
+
+            s3.listObjectsV2(params, function (err, data) {
+                if (err) {
+                    console.log("Error fetching S3 files:", err);
+                    document.getElementById("errorMessage").innerText = "Failed to retrieve video.";
+                } else {
+                    // Filter MP4 and JSON files
+                    var mp4Files = data.Contents.filter(file => file.Key.toLowerCase().endsWith(".mp4"));
+                    var jsonFiles = data.Contents.filter(file => file.Key.toLowerCase().endsWith(".json"));
+
+                    if (mp4Files.length > 0) {
+                        // Get the latest MP4 file
+                        mp4Files.sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified));
+                        var latestMp4 = mp4Files[0].Key;
+                        var videoUrl = `https://${bucketName}.s3.${AWS.config.region}.amazonaws.com/${latestMp4}`;
+                        document.getElementById("videoPlayer").src = videoUrl;
+
+                        // Find the matching JSON file (assuming the same filename pattern)
+                        var jsonFilename = latestMp4.replace(".mp4", "_damage.json");
+                        var jsonFile = jsonFiles.find(file => file.Key === jsonFilename);
+                        if (jsonFile) {
+                            fetchJsonData(jsonFile.Key);
+                        } else {
+                            document.getElementById("jsonData").innerText = "No damage data found.";
+                        }
+                    } else {
+                        document.getElementById("errorMessage").innerText = "No MP4 videos found.";
+                    }
+                }
+            });
+        }
+
+        function fetchJsonData(jsonKey) {
+            var jsonUrl = `https://${bucketName}.s3.${AWS.config.region}.amazonaws.com/${jsonKey}`;
+            fetch(jsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("jsonData").innerText = JSON.stringify(data, null, 4);
+                })
+                .catch(error => {
+                    console.log("Error fetching JSON:", error);
+                    document.getElementById("jsonData").innerText = "Error loading damage data.";
+                });
+        }
+
+        getLatestFiles();
+    </script>
+</body>
+</html>
