@@ -10,7 +10,7 @@ from ultralytics import YOLO
 AWS_S3_BUCKET_NAME = 'gettings3bucketimages'
 AWS_REGION = 'us-east-2'
 AWS_ACCESS_KEY = 'AKIATSXH5I6FM3N4UUGL'
-AWS_SECRET_KEY = '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'
+AWS_SECRET_KEY = ''
 
 # Load YOLOv8 model trained for pothole detection
 model = YOLO('yolov8n-seg.pt')
